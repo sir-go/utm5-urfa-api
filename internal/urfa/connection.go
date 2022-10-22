@@ -95,7 +95,7 @@ func (c *Connection) login(username string, password string, cert string) (err e
 func (c *Connection) wrapSSL(certPath string) (err error) {
 	cert, err := tls.LoadX509KeyPair(certPath, certPath)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	tlsConf := tls.Config{

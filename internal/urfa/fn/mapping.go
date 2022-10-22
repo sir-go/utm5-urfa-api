@@ -1,6 +1,6 @@
 package fn
 
-import "../../urfa"
+import "urfa-go/internal/urfa"
 
 type conn = *urfa.Connection
 
