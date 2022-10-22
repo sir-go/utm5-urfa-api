@@ -6,8 +6,8 @@ import (
 	"runtime/debug"
 	"strings"
 
-	"../urfa"
-	"../urfa/fn"
+	"urfa-go/internal/urfa"
+	"urfa-go/internal/urfa/fn"
 )
 
 type RpcReq struct {
