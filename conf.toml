@@ -4,8 +4,7 @@
     secret = "//"
 
 [utm]
-# list of connected billings
-# urfa.crt - exported from UTM5 client
+    # list of connected billings
     [utm.test]
         addr = "192.168.122.168:11758"
         cert = "urfa.crt"
