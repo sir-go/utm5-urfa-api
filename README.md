@@ -1,5 +1,4 @@
 # JSON-RPC API proxy for URFA-protocol (UTM5 billing)
-[![Go](https://github.com/sir-go/utm5-urfa-api/actions/workflows/go.yml/badge.svg)](https://github.com/sir-go/utm5-urfa-api/actions/workflows/go.yml)
 
 ## Task
 The Netup UTM5 billing system has a rich API based on a proprietary binary protocol.
