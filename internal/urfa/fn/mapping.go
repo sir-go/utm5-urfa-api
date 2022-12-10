@@ -1,13 +1,17 @@
 package fn
 
+// API functions mapping
+
 import "urfa-go/internal/urfa"
 
-type conn = *urfa.Connection
-
-type Dict map[string]interface{}
-type FMap map[string]func(c conn, params Dict) Dict
+type (
+	conn = *urfa.Connection
+	Dict map[string]interface{}
+	FMap map[string]func(c conn, params Dict) Dict
+)
 
 func InitMap() FMap {
+	//goland:noinspection SpellCheckingInspection
 	return FMap{
 		"rpcf_liburfa_list":                          x0040,
 		"rpcf_liburfa_symtab":                        x0044,

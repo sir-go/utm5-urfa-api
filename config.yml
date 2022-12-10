@@ -1,0 +1,16 @@
+# array of billing servers connections
+billings:
+
+#  billing server with the 'test.' prefix
+  test:
+#   URFA server host:port
+    addr: 192.168.122.168:11758
+#   path to the client certificate
+    cert: urfa.crt
+
+#  billing server with the 'tv.' prefix
+  tv:
+#   URFA server host:port
+    addr: 192.168.28.135:11758
+#   path to the client certificate
+    cert: urfa.crt

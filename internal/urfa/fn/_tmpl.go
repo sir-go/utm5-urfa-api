@@ -1,3 +1,6 @@
+//
+// !!! this is an example of any function implementation
+
 package fn
 
 func xTmpl(c conn, p Dict) Dict {
@@ -45,4 +48,5 @@ func xTmpl(c conn, p Dict) Dict {
 		}),
 	}
 }
+
 // Dict{"error": Dict{"code": 13, "comment": "unable to delete service link"}}

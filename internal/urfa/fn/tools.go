@@ -12,6 +12,7 @@ const ErrFormat = "value of '%s' cast error (mustHave be a %s)"
 
 var NotImplemented = errors.New("method is not implemented yet")
 
+// mustHave checks if a Dict contains a key, else - panic
 func mustHave(p Dict, name string) {
 	_, ok := p[name]
 	if !ok {
@@ -19,6 +20,11 @@ func mustHave(p Dict, name string) {
 	}
 }
 
+// forEach searches an array named by name in the Dict,
+// applies a cb function to each element of the array (put it to the connection),
+// puts the length of the array to the Connection,
+// and returns this length.
+// This function makes putting arrays to connection much simpler
 func forEach(c conn, p Dict, name string, cb func(item interface{})) (length int) {
 	if _, ok := p[name]; !ok {
 		c.PutInt(0)
@@ -34,12 +40,15 @@ func forEach(c conn, p Dict, name string, cb func(item interface{})) (length int
 	return
 }
 
+// same forEach function but for processing the Dict elements
 func forEachDict(c conn, p Dict, name string, cb func(arr Dict)) (length int) {
 	return forEach(c, p, name, func(item interface{}) {
 		cb(item.(map[string]interface{}))
 	})
 }
 
+// getMapOf fetches arrays from the connection
+// dictGen callback makes a map for each fetched element
 func getMapOf(c conn, dictGen func() Dict, amount ...int) (res []Dict) {
 	var sz int
 	if len(amount) != 0 {
@@ -55,6 +64,7 @@ func getMapOf(c conn, dictGen func() Dict, amount ...int) (res []Dict) {
 	return
 }
 
+// putI takes an Integer value from the Dict by key name (or def if nothing has found) and puts it to the connection
 func putI(c conn, p Dict, name string, def ...int) int {
 	val, ok := p[name]
 	if !ok {
@@ -76,6 +86,7 @@ func putI(c conn, p Dict, name string, def ...int) int {
 	}
 }
 
+// putL takes a LongInt value from the Dict by key name (or def if nothing has found) and puts it to the connection
 func putL(c conn, p Dict, name string, def ...int64) int64 {
 	val, ok := p[name]
 	if !ok {
@@ -86,6 +97,9 @@ func putL(c conn, p Dict, name string, def ...int64) int64 {
 	}
 
 	switch val.(type) {
+	case int64:
+		c.PutLong(val.(int64))
+		return val.(int64)
 	case int:
 		c.PutLong(int64(val.(int)))
 		return int64(val.(int))
@@ -97,6 +111,7 @@ func putL(c conn, p Dict, name string, def ...int64) int64 {
 	}
 }
 
+// putD takes a Double value from the Dict by key name (or def if nothing has found) and puts it to the connection
 func putD(c conn, p Dict, name string, def ...float64) float64 {
 	val, ok := p[name]
 	if !ok {
@@ -118,6 +133,7 @@ func putD(c conn, p Dict, name string, def ...float64) float64 {
 	}
 }
 
+// putS takes a String value from the Dict by key name (or def if nothing has found) and puts it to the connection
 func putS(c conn, p Dict, name string, def ...string) string {
 	val, ok := p[name]
 	if !ok {
@@ -137,6 +153,8 @@ func putS(c conn, p Dict, name string, def ...string) string {
 
 }
 
+// putA takes an IP address (stored as a string) value from the Dict by key name
+// (or def if nothing has found) and puts it to the connection
 func putA(c conn, p Dict, name string, def ...string) net.IP {
 	val, ok := p[name]
 	if !ok {
@@ -159,6 +177,7 @@ func putA(c conn, p Dict, name string, def ...string) net.IP {
 	}
 }
 
+// sendBin takes a Bytes value from the Dict by key name (or def if nothing has found) and puts it to the connection
 func sendBin(c conn, p Dict, name string) {
 	val, ok := p[name]
 	if !ok {
@@ -179,10 +198,12 @@ func sendBin(c conn, p Dict, name string) {
 	}
 }
 
+// TimeNow just returns the current timestamp
 func TimeNow() int {
 	return int(time.Now().Unix())
 }
 
+// TimeTodayMidnight returns the timestamp of the today's midnight
 func TimeTodayMidnight() int {
 	tNow := time.Now()
 	return int(
@@ -190,6 +211,8 @@ func TimeTodayMidnight() int {
 			0, 0, 0, 0, time.Local).Unix())
 }
 
+// TimeThisMonthBegin returns the timestamp of the current month's beginning
+// (midnight of the first day of the current month)
 func TimeThisMonthBegin() int {
 	tNow := time.Now()
 	return int(

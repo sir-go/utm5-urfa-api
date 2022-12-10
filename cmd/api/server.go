@@ -6,28 +6,36 @@ import (
 	"runtime/debug"
 	"strings"
 
+	"github.com/pkg/errors"
+	zlog "github.com/rs/zerolog/log"
+
 	"urfa-go/internal/urfa"
 	"urfa-go/internal/urfa/fn"
 )
 
-type RpcReq struct {
-	Id      int                    `json:"id"`
-	JsonRPC string                 `json:"jsonrpc"`
-	Method  string                 `json:"method"`
-	Params  map[string]interface{} `json:"params"`
-}
+type (
+	// RpcReq - standard json-rpc request
+	RpcReq struct {
+		Id      int                    `json:"id"`
+		JsonRPC string                 `json:"jsonrpc"`
+		Method  string                 `json:"method"`
+		Params  map[string]interface{} `json:"params"`
+	}
 
-type RpcError struct {
-	Code    int         `json:"code"`
-	Message string      `json:"message"`
-	Data    interface{} `json:"data,omitempty"`
-}
+	// RpcError - standard json-rpc error struct
+	RpcError struct {
+		Code    int         `json:"code"`
+		Message string      `json:"message"`
+		Data    interface{} `json:"data,omitempty"`
+	}
 
-type RpcResp struct {
-	Id     int
-	Result interface{}
-	Error  *RpcError
-}
+	// RpcResp - standard json-rpc response
+	RpcResp struct {
+		Id     int
+		Result interface{}
+		Error  *RpcError
+	}
+)
 
 const (
 	RpcErrParse          = -32700
@@ -36,8 +44,8 @@ const (
 	RpcErrInvalidParams  = -32602
 	RpcErrInternal       = -32603
 
-	RpcInErrUTMconn = -32005
-	RpcInErrUTMcall = -32006
+	RpcInErrUtmConn = -32005
+	RpcInErrUrmCall = -32006
 )
 
 func (u *RpcResp) MarshalJSON() ([]byte, error) {
@@ -65,10 +73,10 @@ func (u *RpcResp) MarshalJSON() ([]byte, error) {
 	case RpcErrInternal:
 		u.Error.Message = "Internal error"
 
-	case RpcInErrUTMconn:
+	case RpcInErrUtmConn:
 		u.Error.Message = "UTM connection error"
 		u.Error.Message = "Internal error"
-	case RpcInErrUTMcall:
+	case RpcInErrUrmCall:
 		u.Error.Message = "UTM call function error"
 	}
 
@@ -83,18 +91,20 @@ func (u *RpcResp) MarshalJSON() ([]byte, error) {
 	})
 }
 
-type ApiServer struct {
-	utmServers CfgUtm
-	methods    fn.FMap
+type Server struct {
+	billings billingsMap
+	methods  fn.FMap
 }
 
-func NewApiServer(cfg CfgUtm) *ApiServer {
-	return &ApiServer{cfg, fn.InitMap()}
+func NewServer(bMap billingsMap) *Server {
+	return &Server{bMap, fn.InitMap()}
 }
 
-func (s *ApiServer) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
+func (s *Server) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 	answer := &RpcResp{}
-	defer writeAnswer(answer, resp)
+	defer writeAnswer(answer, resp) // send answer to the client in any case
+
+	// parse the request
 
 	decoder := json.NewDecoder(req.Body)
 	reqObj := &RpcReq{}
@@ -111,7 +121,9 @@ func (s *ApiServer) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	connParams, billingIsFound := s.utmServers[billingName]
+	// check if we have that billing endpoint and the RPC method
+
+	connParams, billingIsFound := s.billings[billingName]
 	methodImpl, methodIsFound := s.methods[methodName]
 
 	if !billingIsFound || !methodIsFound {
@@ -119,56 +131,67 @@ func (s *ApiServer) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	// check auth
+
 	username, password, ok := req.BasicAuth()
 	if !ok {
 		resp.WriteHeader(http.StatusUnauthorized)
 		return
 	}
 
+	// connect to certain billing server
+
 	utmConn, err := urfa.Connect(connParams.Addr, username, password, connParams.Cert)
 	if err != nil {
-		answer.Error = &RpcError{Code: RpcInErrUTMconn, Data: err.Error()}
+		answer.Error = &RpcError{Code: RpcInErrUtmConn, Data: err.Error()}
 		return
 	}
+
+	// plan to disconnect and make an answer
+
 	defer func() {
 		if err := utmConn.Disconnect(); err != nil {
-			log.Fatal(err)
+			zlog.Err(err).Str("billing", billingName).Msg("disconnection error")
 		}
-	}()
-
-	// log.Debugf("call %s (%v)", methodName, reqObj.Params)
-	log.Debugf("%s (%s) calls '%s.%s'", username, req.Header.Get("X-Real-IP"), billingName, methodName)
-
-	defer func() {
 		if r := recover(); r != nil {
-
-			answer.Error = &RpcError{Code: RpcInErrUTMcall, Data: r.(error).Error()}
-
-			// todo: debug panic
-			log.Error(string(debug.Stack()))
+			answer.Error = &RpcError{Code: RpcInErrUrmCall, Data: r.(error).Error()}
+			zlog.Err(errors.New(string(debug.Stack())))
 		}
 	}()
+
+	zlog.Debug().
+		Str("username", username).
+		Str("ip", req.Header.Get("X-Real-IP")).
+		Str("billing", billingName).
+		Str("method", methodName).
+		Msg("got request")
+
+	// call the method
+
 	answer.Result = methodImpl(utmConn, reqObj.Params)
 }
 
+// writeAnswer - send a response to the client in any case
 func writeAnswer(answer *RpcResp, respW http.ResponseWriter) {
 	answerBuff, err := json.Marshal(answer)
 	if err != nil {
 		respW.WriteHeader(http.StatusInternalServerError)
 	} else {
-		// todo: broken pip crashes service
 		if _, err = respW.Write(answerBuff); err != nil {
-			log.Error(err)
+			zlog.Err(err).Msg("response write error")
 		}
 	}
 }
 
+// getMethod "bill.method" -> "bill", "method", ok if both is ok
 func getMethod(reqObj *RpcReq) (bName string, mName string, ok bool) {
 	methodParts := strings.Split(reqObj.Method, ".")
 	if len(methodParts) < 2 {
 		return
 	}
 	bName, mName = methodParts[0], methodParts[1]
-	ok = true
-	return
+	if len(bName) > 0 && len(mName) > 0 {
+		return bName, mName, true
+	}
+	return "", "", false
 }

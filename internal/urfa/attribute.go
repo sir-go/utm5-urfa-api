@@ -1,9 +1,9 @@
 package urfa
 
 type AttrHeader struct {
-	Type uint8
-	Ver  uint8
-	Len  uint16
+	Type uint8  // code of attribute type
+	Ver  uint8  // attribute version
+	Len  uint16 // attribute total length
 }
 
 type Attribute struct {

@@ -1,45 +1,38 @@
 package main
 
 import (
-	"os"
+	"io/ioutil"
+	"path/filepath"
 
-	"github.com/BurntSushi/toml"
+	"gopkg.in/yaml.v3"
 )
 
-type CfgUtmServ struct {
-	Addr string `toml:"addr"`
-	Cert string `toml:"cert"`
+type (
+	cfgBilling struct {
+		Addr string `yaml:"addr"`
+		Cert string `yaml:"cert"`
+	}
+	billingsMap map[string]cfgBilling
+
+	Config struct {
+		Billings billingsMap `yaml:"billings"`
+	}
+)
+
+// readConfig parses Config struct from yaml data
+func readConfig(confData []byte) (*Config, error) {
+	conf := new(Config)
+	if err := yaml.Unmarshal(confData, conf); err != nil {
+		return nil, err
+	}
+	return conf, nil
 }
 
-type CfgUtm map[string]CfgUtmServ
-
-type CfgService struct {
-	Host   string `toml:"host"`
-	Port   int    `toml:"port"`
-	Secret string `toml:"secret"`
-}
-
-type Cfg struct {
-	Service CfgService `toml:"service"`
-	Utm     CfgUtm     `toml:"utm"`
-}
-
-func LoadConfig(confpath string) (*Cfg, error) {
-	conf := new(Cfg)
-	file, err := os.Open(confpath)
-	defer func() {
-		if err := file.Close(); err != nil {
-			panic(err)
-		}
-	}()
+// LoadConfig reads yaml file and parses it to Config struct
+func LoadConfig(path string) (*Config, error) {
+	data, err := ioutil.ReadFile(filepath.Clean(path))
 	if err != nil {
 		return nil, err
 	}
-
-	_, err = toml.DecodeFile(confpath, &conf)
-	if err != nil {
-		return nil, err
-	}
-
-	return conf, err
+	return readConfig(data)
 }

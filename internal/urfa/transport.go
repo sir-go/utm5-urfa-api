@@ -7,6 +7,8 @@ import (
 	"net"
 )
 
+// Connection low-level IO operations for several scalar types
+
 // ------------------------------------------  get
 
 func (c *Connection) GetS() string {
