@@ -4,48 +4,30 @@ import (
 	"flag"
 	"fmt"
 	"net/http"
-	"os"
-	"os/signal"
+	"time"
+
+	zlog "github.com/rs/zerolog/log"
 )
 
-func check(err error) {
-	if err != nil {
-		log.Panic(err)
-	}
-}
-
-func initInterrupt() {
-	c := make(chan os.Signal, 1)
-	signal.Notify(c, os.Interrupt)
-	go func() {
-		for range c {
-			log.Info("-- stop --")
-			os.Exit(137)
-		}
-	}()
-}
-
-func init() {
-	initLogging()
-	initInterrupt()
-}
-
 func main() {
-	log.Info("-- start --")
-	log.Debug("process command line arguments...")
-	fCfgPath := flag.String("c", "conf.toml", "path to conf file")
+	zlog.Debug().Msg("process command line arguments...")
+	fCfgPath := flag.String("c", "config.yml", "path to conf file")
+	fAddr := flag.String("h", "localhost:8081", "service address:port")
 	flag.Parse()
 
-	log.Debug("parse config file")
+	zlog.Debug().Str("path", *fCfgPath).Msg("load config file...")
 	cfg, err := LoadConfig(*fCfgPath)
-	check(err)
+	eh(err)
 
-	addr := fmt.Sprintf("%s:%d", cfg.Service.Host, cfg.Service.Port)
+	server := NewServer(cfg.Billings)
 
-	server := NewApiServer(cfg.Utm)
-
-	log.Debugf("http://%s/api/v1", addr)
-
+	//goland:noinspection HttpUrlsUsage
+	zlog.Info().Str("address", fmt.Sprintf("http://%s/api/v1", *fAddr)).Msg("run service")
 	http.Handle("/api/v1", server)
-	log.Fatal(http.ListenAndServe(addr, nil))
+
+	eh((&http.Server{
+		Addr:         *fAddr,
+		ReadTimeout:  10 * time.Second,
+		WriteTimeout: 10 * time.Second,
+	}).ListenAndServe())
 }

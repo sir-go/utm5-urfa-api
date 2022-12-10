@@ -1,14 +1,16 @@
 package urfa
 
+// All URFA protocol constants
+
 // packet attribute logintype
 //noinspection GoUnusedConst
 const (
-	LoginTypeRegular uint32 = iota + 1 // 1
-	LoginTypeSystem                    // 2
-	LoginTypeCard                      // 3
+	LoginTypeRegular uint32 = iota + 1 // 1 it's a regular user
+	LoginTypeSystem                    // 2 it's a system user
+	LoginTypeCard                      // 3 it's a card user
 )
 
-// packet attribute sslrequest
+// packet attribute sslrequest (version of SSL)
 //noinspection GoUnusedConst
 const (
 	SslReqTypeTLS1        = iota + 1 // 1
@@ -18,13 +20,13 @@ const (
 	SslReqTypeTLS12                  // 5
 )
 
-// termination attribute codes
+// termination attribute codes (reason of the session termination)
 //noinspection GoUnusedConst
 const (
-	TermValueAccessRejected uint32 = 1
-	TermValueIllegalCode    uint32 = 3
-	TermValueDone           uint32 = 4
-	TermValueForbidden      uint32 = 7
+	TermValueAccessRejected uint32 = 1 // access for this user is denied
+	TermValueIllegalCode    uint32 = 3 // unknown call code was received
+	TermValueDone           uint32 = 4 // session is just done... whatever
+	TermValueForbidden      uint32 = 7 // user hasn't permission for using an API
 )
 
 // urfa packet
@@ -59,4 +61,5 @@ const (
 	AttrHeaderSize = 4
 )
 
+// BinChunkSize - how many bytes to send at a time
 const BinChunkSize = 1024

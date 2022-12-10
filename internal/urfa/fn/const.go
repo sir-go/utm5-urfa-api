@@ -1,5 +1,7 @@
 package fn
 
+// URFA API constants
+
 // search criteria
 //noinspection GoUnusedConst
 const (
