@@ -177,6 +177,7 @@ func writeAnswer(answer *RpcResp, respW http.ResponseWriter) {
 	if err != nil {
 		respW.WriteHeader(http.StatusInternalServerError)
 	} else {
+		respW.Header().Set("Content-Type", "application/json")
 		if _, err = respW.Write(answerBuff); err != nil {
 			zlog.Err(err).Msg("response write error")
 		}
