@@ -31,7 +31,7 @@ type (
 
 	// RpcResp - standard json-rpc response
 	RpcResp struct {
-		Id     int
+		Id     *int
 		Result interface{}
 		Error  *RpcError
 	}
@@ -52,7 +52,7 @@ func (u *RpcResp) MarshalJSON() ([]byte, error) {
 	if u.Error == nil {
 		return json.Marshal(&struct {
 			JsonRPC string      `json:"jsonrpc"`
-			Id      int         `json:"id"`
+			Id      *int        `json:"id"`
 			Result  interface{} `json:"result"`
 		}{
 			JsonRPC: "2.0",
@@ -82,7 +82,7 @@ func (u *RpcResp) MarshalJSON() ([]byte, error) {
 
 	return json.Marshal(&struct {
 		JsonRPC string    `json:"jsonrpc"`
-		Id      int       `json:"id"`
+		Id      *int      `json:"id"`
 		Error   *RpcError `json:"error"`
 	}{
 		JsonRPC: "2.0",
@@ -113,7 +113,8 @@ func (s *Server) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	answer.Id = reqObj.Id
+	answer.Id = new(int)
+	*answer.Id = reqObj.Id
 
 	billingName, methodName, ok := getMethod(reqObj)
 	if !ok {
