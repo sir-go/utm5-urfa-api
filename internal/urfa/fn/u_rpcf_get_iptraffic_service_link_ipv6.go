@@ -6,9 +6,73 @@ func x272f(c conn, p Dict) Dict {
 	putI(c, p, "slink_id")
 	c.Send()
 
-	// fixme: output has a complex param
-	panic(NotImplemented)
-	return nil
+	res := Dict{
+		"tariff_link_id":     c.GetI(),
+		"is_blocked":         c.GetI(),
+		"discount_period_id": c.GetI(),
+		"start_date":         c.GetI(),
+		"expire_date":        c.GetI(),
+		"policy_id":          c.GetI(),
+		"cost_coef":          c.GetD(),
+		"unabon":             c.GetI(),
+		"unprepay":           c.GetI(),
+		"house_id":           c.GetI(),
+		"comment":            c.GetS(),
+		"tariff_id":          c.GetI(),
+		"parent_id":          c.GetI(),
+		"bandwidth_in":       c.GetI(),
+		"bandwidth_out":      c.GetI(),
+		"ip_groups": getMapOf(c, func() Dict {
+			return Dict{
+				"id":                    c.GetI(),
+				"ip_address":            c.GetA(),
+				"mask":                  c.GetI(),
+				"mac":                   c.GetS(),
+				"iptraffic_login":       c.GetS(),
+				"iptraffic_password":    c.GetS(),
+				"iptraffic_allowed_cid": c.GetS(),
+				"pool_name":             c.GetS(),
+				"ip_not_vpn":            c.GetI(),
+				"dont_use_fw":           c.GetI(),
+				"is_dynamic":            c.GetI(),
+				"router_id":             c.GetI(),
+				"switch_id":             c.GetI(),
+				"port_id":               c.GetI(),
+				"vlan_id":               c.GetI(),
+				"pool_id":               c.GetI(),
+				"dhcp_options": getMapOf(c, func() Dict {
+					dhcpOption := Dict{
+						"dhcp_option_id": c.GetI(),
+						"dhcp_data_type": c.GetI(),
+					}
+					switch dhcpOption["dhcp_data_type"] {
+					case 1:
+						dhcpOption["dhcp_attr_data_int"] = c.GetI()
+					case 2:
+						dhcpOption["dhcp_attr_data_string"] = c.GetS()
+					case 3:
+						dhcpOption["dhcp_attr_data_ip"] = c.GetA()
+					case 4:
+						dhcpOption["dhcp_attr_data_hex_bin"] = c.GetBin()
+					case 5:
+						dhcpOption["ip_array"] = getMapOf(c, func() Dict {
+							return Dict{"attr_data_ip": c.GetA()}
+						})
+					}
+					return dhcpOption
+				}),
+				"quotas": getMapOf(c, func() Dict {
+					return Dict{
+						"tclass_id":   c.GetI(),
+						"tclass_name": c.GetS(),
+						"quota":       c.GetL(),
+					}
+				}),
+			}
+		}),
+	}
+
+	return res
 }
 
 /* xml:
